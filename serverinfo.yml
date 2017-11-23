@@ -1,0 +1,11 @@
+---
+- host: serverinfo
+  sudo: yes
+
+  tasks: 
+
+  - name: run script
+    script: serverinfo.sh
+    when:
+        ansible_os_family == "Debian"
+# http://docs.ansible.com/ansible/latest/playbooks_conditionals.html
