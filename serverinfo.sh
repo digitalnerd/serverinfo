@@ -5,7 +5,7 @@ HOSTNAME=$(hostname -f)
 DISTR=$(cat /etc/issue | head -1)
 MOTHERBOARD=$(dmidecode -t 2 | grep -iP 'manufacturer|product name' | sed -e 's/[^.]*: //' -e 's/Corporation//' | paste -s -d' ')
 # CPU
-CPUNUMBERS=$(dmidecode -t 4 | grep -i status | grep -iPc "populated|enabled")
+CPUNUMBERS=$(dmidecode -t 4 | grep -i status | grep -iPcw "populated|enabled")
 CPUINFO=$(dmidecode -t 4 | grep -i version | uniq | sed -e 's/[^.]*: //' -e 's/[(R)(TM)@]//g' -e 's/ \{1,\}/ /g')
 CPUNUMBERSPROC=$(grep -ic "model name" /proc/cpuinfo)
 CPUINFOPROC=$(grep -i "model name" /proc/cpuinfo | uniq | sed -e 's/[^.]*: //' -e 's/[(R)(TM)@]//g' -e 's/ \{1,\}/ /g')
@@ -21,8 +21,8 @@ RAMINFO=$(dmidecode -t 17 | grep -iP "size|type:|speed" | grep -vP "No Module In
 MAXRAM=$(dmidecode -t 16 | grep "Maximum Capacity" | uniq | sed 's/[^.]*: //')
 
 function motherInfo {
-    CHECK=$(dmidecode | grep -P "No SMBIOS|sorry")
-    if [ $? -eq 0 ]; then
+    CHECK=$(dmidecode -t 2 | grep -iP 'manufacturer|product name')
+    if [ $? -eq 1 ]; then
         echo "Mother Board: no found"
     else
         echo "Mother Board: $MOTHERBOARD"
@@ -30,7 +30,12 @@ function motherInfo {
 }
 
 function hddInfo {
-    echo "HDD: $HDDINFO"
+    CHECK=$(fdisk -l 2>/dev/null | grep "Disk /dev/")
+    if [ $CHECK -eq 1 ]; then
+        echo "HDD: No found"
+    else
+        echo "HDD: $HDDINFO"
+    fi
 }
 
 function raidInfo {
