@@ -1,27 +1,29 @@
 #!/bin/bash
 
+DMIDECODE=$(whereis dmidecode | awk '{print $2}')
+FDISK=$(whereis fdisk | awk '{print $2}')
 # Other
 HOSTNAME=$(hostname -f)
 DISTR=$(cat /etc/issue | head -1)
-MOTHERBOARD=$(dmidecode -t 2 | grep -iP 'manufacturer|product name' | sed -e 's/[^.]*: //' -e 's/Corporation//' | paste -s -d' ')
+MOTHERBOARD=$($DMIDECODE -t 2 | grep -iP 'manufacturer|product name' | sed -e 's/[^.]*: //' -e 's/Corporation//' | paste -s -d' ')
 # CPU
-CPUNUMBERS=$(dmidecode -t 4 | grep -i status | grep -iPcw "populated|enabled")
-CPUINFO=$(dmidecode -t 4 | grep -i version | uniq | sed -e 's/[^.]*: //' -e 's/[(R)(TM)@]//g' -e 's/ \{1,\}/ /g')
+CPUNUMBERS=$($DMIDECODE -t 4 | grep -i status | grep -iPcw "populated|enabled")
+CPUINFO=$($DMIDECODE -t 4 | grep -i version | uniq | sed -e 's/[^.]*: //' -e 's/[(R)(TM)@]//g' -e 's/ \{1,\}/ /g')
 CPUNUMBERSPROC=$(grep -ic "model name" /proc/cpuinfo)
 CPUINFOPROC=$(grep -i "model name" /proc/cpuinfo | uniq | sed -e 's/[^.]*: //' -e 's/[(R)(TM)@]//g' -e 's/ \{1,\}/ /g')
 # HDD
-HDDINFO=$(fdisk -l 2>/dev/null | grep "Disk /dev/" | grep -v "md" | awk '{print $3, $4}' | sed 's/,//g' | uniq -c | awk '{print $1 " x" ,$2, $3}')
+HDDINFO=$($FDISK -l 2>/dev/null | grep -P "Disk /dev/|Диск /dev/" | grep -v "md" | awk '{print $3, $4}' | sed 's/,//g' | uniq -c | awk '{print $1 " x" ,$2, $3}')
 # RAID
 RAIDNUMBERS=$(grep -c "active raid" /proc/mdstat)
 RAIDTYPE=$(grep "active raid" /proc/mdstat | awk '{print $4}' | uniq -c | tr 'a-z' 'A-Z' | awk '{print $1, "x " $2}')
 RAIDNUMBEROFTYPES=$(grep "active raid" /proc/mdstat | awk '{print $4}' | uniq | wc -l)
 # RAM
-RAMNUMBERS=$(dmidecode -t 17 | grep Size | grep -vc "No Module Installed")
-RAMINFO=$(dmidecode -t 17 | grep -iP "size|type:|speed" | grep -vP "No Module Installed|Unknown|Clock" | sort -u | paste -s | awk '{print $2, $3, $8, $5, $6}')
-MAXRAM=$(dmidecode -t 16 | grep "Maximum Capacity" | uniq | sed 's/[^.]*: //')
+RAMNUMBERS=$($DMIDECODE -t 17 | grep Size | grep -vc "No Module Installed")
+RAMINFO=$($DMIDECODE -t 17 | grep -iP "size|type:|speed" | grep -vP "No Module Installed|Unknown|Clock" | sort -u | paste -s | awk '{print $2, $3, $8, $5, $6}')
+MAXRAM=$($DMIDECODE -t 16 | grep "Maximum Capacity" | uniq | sed 's/[^.]*: //')
 
 function motherInfo {
-    CHECK=$(dmidecode -t 2 | grep -iP 'manufacturer|product name')
+    CHECK=$($DMIDECODE -t 2 | grep -iP 'manufacturer|product name')
     if [ $? -eq 1 ]; then
         echo "Mother Board: no found"
     else
@@ -30,9 +32,9 @@ function motherInfo {
 }
 
 function hddInfo {
-    CHECK=$(fdisk -l 2>/dev/null | grep "Disk /dev/")
-    if [ $CHECK -eq 1 ]; then
-        echo "HDD: No found"
+    CHECK=$($FDISK -l 2>/dev/null | grep -P "Disk /dev/|Диск /dev/")
+    if [ "$CHECK" == 1 ]; then
+        echo "HDD: no found"
     else
         echo "HDD: $HDDINFO"
     fi
@@ -47,7 +49,7 @@ function raidInfo {
 }
 
 function cpuInfo {
-    CHECK=$(dmidecode | grep -P "No SMBIOS|sorry")
+    CHECK=$($DMIDECODE | grep -P "No SMBIOS|sorry")
     if [ $? -eq 0 ]; then
         echo "CPU: $CPUNUMBERSPROC x $CPUINFOPROC"
     else 
@@ -60,7 +62,7 @@ function cpuInfo {
 }
 
 function ramInfo {
-    CHECK=$(dmidecode | grep -P "No SMBIOS|sorry")
+    CHECK=$($DMIDECODE | grep -P "No SMBIOS|sorry")
     if [ $? -eq 0 ]; then
         echo "RAM: no found"
         echo "Max RAM: no found"
